@@ -1,0 +1,75 @@
+version : "3.8"
+services :
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - my_network
+
+  vuejs:
+    container_name: vuejs
+    build:
+      context: ./vuejs
+      dockerfile: ../docker/vuejs
+    environment:
+      - HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - nginx
+      - laravel
+    volumes:
+      - ./vuejs:/app
+      - /app/node_modules
+    ports:
+      - "8000:8000"
+    networks:
+      - my_network
+
+  laravel:
+    container_name: laravel
+    build:
+      context: ./laravel
+      dockerfile: ../docker/laravel
+    volumes:
+      - ./laravel:/var/www/html
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mysql
+      - nginx
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - my_network
+
+  mysql:
+    container_name: mysql
+    image: 'mysql:latest'
+    ports:
+      - 3306:3306
+    tty: true
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge

@@ -1,0 +1,4 @@
+mysql/*
+!mysql/README.md
+.env
+ssh
